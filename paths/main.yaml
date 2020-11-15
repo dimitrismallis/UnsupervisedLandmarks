@@ -1,0 +1,2 @@
+log_path: /home/SERILOCAL/d.mallis/
+path_to_superpoint_checkpoint: /home/SERILOCAL/d.mallis/Projects/Unsupervised-Learning-of-Object-Landmarks-via-Self-Training-Correspondence/SuperPointCheckPoint.pth
