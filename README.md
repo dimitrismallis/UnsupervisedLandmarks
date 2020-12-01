@@ -1,12 +1,12 @@
-#Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS2020)
-###Dimitrios Mallis, Enrique Sanchez, Matt Bell, Georgios Tzimiropoulos
+# Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS2020)
+### Dimitrios Mallis, Enrique Sanchez, Matt Bell, Georgios Tzimiropoulos
 
 This software implements a 2 step process that discovers object landmarks given only images of a specific category, as discussed in this [paper](https://papers.nips.cc/paper/2020/file/32508f53f24c46f685870a075eaaa29c-Paper.pdf).
 
 
 ![alt text](images/repo1.png "Method Description")
 
-##Requirments
+## Requirments
 
 An overview or software requirments.
 
@@ -28,18 +28,18 @@ An overview or software requirments.
 
 You will also require a reasonable CUDA capable GPU. This project was developed using Linux. 
 
-##Data Preparation
+## Data Preparation
 
 
-###CelebA
+### CelebA
 
 CelebA can be downloaded [here](http://www.robots.ox.ac.uk/~vgg/research/unsupervised_landmarks/resources/celeba.zip). Before running our method please update the path to CelebA images in `paths/main.yaml`. We provide precomputed bounding boxes and 68-point annotations (for evaluation only) inside the _data/CelebA_ directory.
 
-###LS3D
+### LS3D
 We use [300W-LP](https://drive.google.com/file/d/0B7OEHD3T4eCkVGs0TkhUWFN6N1k/view?usp=sharing) database for training and [LS3D-balanced](https://www.adrianbulat.com/face-alignment) for evaluation. Before running our method please update the corresponding paths to to 300W-LP and LS3D-balanced images in `paths/main.yaml` . We provide precomputed bounding boxes for 300W-LP inside the _data/LS3D_ directory.
 
 
-###Human3.6
+### Human3.6
 Human3.6, database is availiable [here](http://vision.imar.ro/). From the availiable downloads we only requre video data, bounding boxes _(MySegmentsMat-> ground\_truth\_bb)_ and 2D keypoints for evaluation _(MyPoseFeatures-> D2\_Positions)_ . For easier download you can use an automated tool like [this](https://github.com/kotaro-inoue/human3.6m_downloader).
 
 We provide a python script to preprocess the video data. Before executing the script ensure that download database follows the following path structure:
@@ -71,7 +71,7 @@ _\< path\_to\_Human \>_ is the directory where Human3.6 is downloaded. Frames, b
 
 
 
-##Training
+## Training
 Our method is bootstraped by Superpoint. Before executing the training code, download a [pretrained Superpoint model](https://github.com/magicleap/SuperPointPretrainedNetwork/blob/master/superpoint_v1.pth) and specify the following paths in `paths/main.yaml`.
 
 - `log_path`: Directoy to store log files and checkpoints.
@@ -91,7 +91,7 @@ python Train_Secondstep.py --dataset_name <dataset_name> --experiment_name <expe
 
 where _\< dataset\_name \>_ is in ``["CelebA","LS3D", "Human3.6"]`` and _\< experiment\_name \>_ is a custom name you choose for each experiment. Please use the same experiment name for both the first and second step. The software will automatically initiate the second step with the groundtruth descovered in step one.
 
-##Testing
+## Testing
 To evaluate the trained model simply execute:
 
 ```
@@ -101,10 +101,10 @@ python Test.py --dataset_name <dataset_name> --experiment_name <experiment_name>
 The script will calculate cumulative forward and backward error curves. Will be stored in _log\_path/\<experiment\_name\>/Logs/_  .
 
 
-##Visualisations
+## Visualisations
 We provide 3 different visualisations.
 
-###Keypoints:
+### Keypoints:
 To inspect keypoint 2D locations learned from the detector head without without correspondance run:
 
 ```
@@ -113,7 +113,7 @@ python Visualise.py --visualisation Step1_Keypoints --dataset_name <dataset_name
 
 ![alt text](images/repo_keypoints.png "Example of detected keypoints.")
 
-###Clusters:
+### Clusters:
 To inspect examples of keypoints assigned to the same cluster run:
 
 ```
@@ -124,7 +124,7 @@ python Visualise.py --visualisation Step1_Clusters --dataset_name <dataset_name>
 
 This will create a .jpg file per cluster.
 
-###Visual Results:
+### Visual Results:
 For visual results run:
 
 ```
@@ -135,7 +135,7 @@ python Visualise.py --visualisation Step2 --dataset_name <dataset_name> --experi
 
 The software will automatically load checkpoints and pseudogroundtruth files for the assosiated `<experiment_name> `.
 
-##Pretrained Models
+## Pretrained Models
 
 We provide also pretrained models. Can be used to execute the testing script and produce visual results.
 
