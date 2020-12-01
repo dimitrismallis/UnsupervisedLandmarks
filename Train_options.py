@@ -4,17 +4,19 @@ import types
 
 class Options():
 
-    def __init__(self):
-        self._parser = argparse.ArgumentParser(description='Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS20)')
-        self.initialize()
-        self.parse_args()
+    def __init__(self,useparser=True):
+        if(useparser):
+            self._parser = argparse.ArgumentParser(description='Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS2020)')
+            self.initialize()
+            self.parse_args()
 
 
     def initialize(self):
-        self._parser.add_argument('--experiment_name', default='celebrepostep2')
-        self._parser.add_argument('--dataset_name', choices=['CelebA', 'LS3D'], default='CelebA',help='Select training dataset')
+        self._parser.add_argument('--experiment_name', default='Run1',help='Please assign a unique name for each experiment. Use the same name for both training set 1 and 2.')
+        self._parser.add_argument('--dataset_name', choices=['CelebA', 'LS3D','Human3.6'], default='CelebA',help='Select training dataset')
         self._parser.add_argument('--num_workers', default=16, help='Number of workers',type=int)
-        self._parser.add_argument('--resume', default=False)
+        self._parser.add_argument('--resume', default=True, help='If True step1 and 2 will resume form last saved checkpoint and pseudogroundtruth.')
+
 
     def GetHyperparameters(self,step,dataset_name):
         
@@ -34,7 +36,7 @@ class Options():
 
             if(dataset_name in ['Human3.6']):
                 hyperparameters.number_of_clusters=250
-                hyperparameters.remove_superpoint_outliers_percentage=0.1
+                hyperparameters.remove_superpoint_outliers_percentage=0.4
                 hyperparameters.RemoveBackgroundClusters=True
 
             elif(dataset_name in ['CelebA', 'LS3D']):

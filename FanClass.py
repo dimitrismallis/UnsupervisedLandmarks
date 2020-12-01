@@ -254,18 +254,6 @@ class FAN_Model():
                 sample_keypoints = batch_keypoints[indexes, 1:][:,:3]
 
 
-                import matplotlib
-                import matplotlib.pyplot as plt
-                fig, ax = plt.subplots(1)
-                ax.set_axis_off()
-                ax.imshow(input[i].detach().cpu().numpy().transpose(1,2,0),cmap='gray', vmin=0.0, vmax=1.0)
-                ax.scatter(4*sample_keypoints[:, 0].cpu().detach().numpy(), 4*sample_keypoints[:, 1].cpu().detach().numpy())
-                plt.show()
-                fig.savefig(f'/home/SERILOCAL/d.mallis/Projects/UnsupervisedLandmarks/foo.jpg')
-                # fig.savefig(f'/home/SERILOCAL/d.mallis/Logs/test2/epoch15_{i}.jpg')
-                import time
-                time.sleep(1)
-
                 pointsperimage+=len(sample_keypoints)
                 if(oldkeypoints is not None):
                     if(names[i] in oldkeypoints):
@@ -277,7 +265,7 @@ class FAN_Model():
                 descriptors = GetDescriptors(descriptors_volume[i], sample_keypoints[:, :2],
                                              heatmapsize,
                                              heatmapsize)
-
+          
                 numofpoints = sample_keypoints.shape[0]
                 last_index += numofpoints
                 buffer_last_index += numofpoints
@@ -323,7 +311,7 @@ class FAN_Model():
 
         self.KmeansClustering.clus.nredo = 1
 
-        thresholds = self.GetThresholdsPerCluster( Descriptors)
+        thresholds = self.GetThresholdsPerCluster(Descriptors)
 
         Image_Keypoints = {}
 
@@ -520,33 +508,7 @@ class FAN_Model():
 
                 keypoints[name[i]]={'prediction':sampleKeypoints,'groundtruth':samplegroundtruth,'is_it_test_sample':is_test_sample[i]}
 
-                
-                import colorsys
-                import matplotlib
-                import matplotlib.pyplot as plt
-                N=self.number_of_clusters  
-                pointindexes=self.active_channels.copy()
-                fig, subplots = plt.subplots(4, 4, figsize=(10, 10))
-                subplots = subplots.reshape(-1)
-                fig.subplots_adjust(wspace=0, hspace=0)
-                for s in subplots:
-                    s.set_axis_off()
-                HSV_tuples = [(x * 1.0 / N, 1, 1) for x in range(N)]
-                RGB_tuples = list(map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples))
-                fig, ax = plt.subplots(1)
-                ax.set_axis_off()
-                ax.imshow(input[i].detach().cpu().numpy().transpose(1,2,0),cmap='gray', vmin=0.0, vmax=1.0)
-                colors = [RGB_tuples[int(i)] for i in pointindexes]
-                ax.scatter(sampleKeypoints[:, 0], sampleKeypoints[:, 1],c=colors)
-                # ax.scatter(samplegroundtruth[:, 0], samplegroundtruth[:, 1])
-                # for j in range(len(sampleKeypoints)):
-                #     if(np.isnan(sampleKeypoints[j, 0].item())==False):
-                #         ax.text(int(sampleKeypoints[j, 0].item()), int(sampleKeypoints[j, 1].item()), str(pointindexes[j]),
-                #                     color="black", fontsize=10, horizontalalignment='center', verticalalignment='center')
-                plt.show()
-                fig.savefig(f'/home/SERILOCAL/d.mallis/Projects/UnsupervisedLandmarks/foo2.jpg'  )
-                import time
-                time.sleep(1)
+        
 
         self.save_keypoints(keypoints, f'EvaluateStep2Keypoints{self.iterations}.pickle')
         return keypoints

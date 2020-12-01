@@ -28,13 +28,27 @@ class Evaluator():
     def Evaluate(self,keypoints):
         if(self.database_name in ['CelebA']):
             N=300
-            landmarksfornormalise=[36,45]
+            landmarksfornormalise=[41,46]
+        if(self.database_name in ['LS3D']):
+            N=300
+            landmarksfornormalise=None
+        if(self.database_name in ['Human3.6']):
+            N=800
+            landmarksfornormalise=[25,17]
 
         forward_per_landmark_cumulative,backward_per_landmark_cumulative=self.evaluate_backward_forward(keypoints,landmarksfornormalise,N)
         
         if(self.database_name == 'CelebA'):
             titlebac=r"$\bf{MAFL}$, $\it{Backward}$"
             titlefor=r"$\bf{MAFL}$, $\it{Forward}$"
+
+        if(self.database_name == 'LS3D'):
+            titlebac=r"$\bf{LS3D}$, $\it{Backward}$"
+            titlefor=r"$\bf{LS3D}$, $\it{Forward}$"
+
+        if(self.database_name == 'Human3.6'):
+            titlebac=r"$\bf{Human3.6}$, $\it{Backward}$"
+            titlefor=r"$\bf{Human3.6}$, $\it{Forward}$"
 
         import matplotlib.pyplot as plt
         import matplotlib.ticker as mtick
@@ -221,10 +235,10 @@ def Forward_matrix(keypoints_array,
     DF = pd.DataFrame(Xtest_new.reshape(Xtest_new.shape[0],nl))
     Xc_test = DF.fillna(value=col_means).to_numpy()
     Ytest=test_groundtruth
-    err_fwd_fs = np.zeros((100,Xc_test.shape[0],Ytest.shape[1]//2))
-    err_fwd_io = np.zeros((100,Xc_test.shape[0],Ytest.shape[1]//2))
+    err_fwd_fs = np.zeros((10,Xc_test.shape[0],Ytest.shape[1]//2))
+    err_fwd_io = np.zeros((10,Xc_test.shape[0],Ytest.shape[1]//2))
 
-    for j in range(0,100):
+    for j in range(0,10):
         reg_factor = 0.01
         ty = 'type2'
         centre = 256.0

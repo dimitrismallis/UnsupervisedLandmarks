@@ -1,6 +1,0 @@
-datapath: /home/SERILOCAL/d.mallis/Datasets/CelebA/celeba/Img/img_align_celeba_hq/
-path_to_boxes: /home/SERILOCAL/d.mallis/Datasets/celeba/CelebABoundingBoxes.pickle
-list_eval_partition: /home/SERILOCAL/d.mallis/Datasets/celeba/list_eval_partition.txt
-mafl_testing: /home/SERILOCAL/d.mallis/Datasets/celeba/mafl_testing.txt
-mafl_training: /home/SERILOCAL/d.mallis/Datasets/celeba/mafl_training.txt
-mafl_groundtruth: /home/SERILOCAL/d.mallis/Datasets/celeba/MaflGroundtruthLandmarks.pickle

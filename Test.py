@@ -12,7 +12,7 @@ import resource
 import yaml
 import evaluation
 
-def test(experiment_options,experiment_name,dataset_name,number_of_workers):
+def test(experiment_options,experiment_name,dataset_name,number_of_workers,log_path):
     step=2
     hyperparameters=experiment_options.GetHyperparameters(2,dataset_name)
 
@@ -30,17 +30,11 @@ def test(experiment_options,experiment_name,dataset_name,number_of_workers):
     confidence_thres_FAN=hyperparameters.confidence_thres_FAN
     clusteroverlap=hyperparameters.clusteroverlap
 
-    #load paths
-    with open('paths/main.yaml') as file:
-        paths = yaml.load(file, Loader=yaml.FullLoader)
-    log_path=paths['log_path']
-
+    Utils.initialize_log_dirs(experiment_name,log_path)
     checkpoint=Utils.GetPathsEval(experiment_name,log_path)
 
     FAN = FAN_Model(number_of_clusters,None,experiment_name,confidence_thres_FAN,log_path,step)
     FAN.init_secondstep(lr,weight_decay,batch_multiplier,number_of_clusters,lrstep,clusteroverlap)
-
-    
 
     FAN.load_trained_secondstep_model(checkpoint_filename=checkpoint)
 
@@ -48,6 +42,7 @@ def test(experiment_options,experiment_name,dataset_name,number_of_workers):
     evaluation_dataloader = DataLoader(evaluation_database, batch_size=10, shuffle=False,num_workers=number_of_workers, drop_last=True)
 
     keypoints=FAN.Get_labels_for_evaluation(evaluation_dataloader)
+
     return keypoints
 
 
@@ -62,14 +57,19 @@ if __name__=="__main__":
     global args
     args = experiment_options.args  
 
+    #load paths
+    with open('paths/main.yaml') as file:
+        paths = yaml.load(file, Loader=yaml.FullLoader)
+    log_path=paths['log_path']
+
     # config parameters
     args = experiment_options.args
     experiment_name=args.experiment_name
     dataset_name = args.dataset_name
     number_of_workers = args.num_workers
 
-    keypoints=test(experiment_options,experiment_name,dataset_name,number_of_workers)
+    keypoints=test(experiment_options,experiment_name,dataset_name,number_of_workers,log_path)
 
-    evaluator=evaluation.Evaluator(dataset_name,experiment_name)
+    evaluator=evaluation.Evaluator(dataset_name,experiment_name,log_path)
     evaluator.Evaluate(keypoints)
 

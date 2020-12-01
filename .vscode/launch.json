@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            // "program": "Train_Secondstep.py",
+            // "program": "PreProcessHuman.py",
+            "program":"Test.py",
+            // "program":"Visualise.py",
+            // "console": "integratedTerminal",
+            "args": ["--num_workers","32", "--dataset_name", "Human3.6","--experiment_name","humanrepo2"],
+            // "args": ["--num_workers","32", "--dataset_name", "Human3.6","--experiment_name","humanrepo2","--visualisation","Step2"],
+            // "args": ["--num_workers","0", "--dataset_name", "Human3.6","--experiment_name","celebrepo2"],
+            "env": {"CUDA_VISIBLE_DEVICES":"6"}
+        }
+    ]
+}

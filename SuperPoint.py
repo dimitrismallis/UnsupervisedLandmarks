@@ -28,11 +28,13 @@ class SuperPoint():
             self.SuperpointUndoScaleDistill1 = iaa.Affine(scale={"x": 1 / 1.3, "y": 1 / 1.3})
             self.SuperpointUndoScaleDistill2 = iaa.Affine(scale={"x": 1 / 1.6, "y": 1 / 1.6})
 
-        checkpoint = torch.load(path_to_pretrained_superpoint, map_location='cpu')
-        
-        self.model.load_state_dict(checkpoint['state_dict'])
-        LogText(f"Superpoint Network from checkpoint {path_to_pretrained_superpoint}", self.experiment_name, self.log_path)
-        
+        try:
+            checkpoint = torch.load(path_to_pretrained_superpoint, map_location='cpu')
+            self.model.load_state_dict(checkpoint['state_dict'])
+            LogText(f"Superpoint Network from checkpoint {path_to_pretrained_superpoint}", self.experiment_name, self.log_path)
+        except:
+            LogText(f"Superpoint network failed to load", self.experiment_name, self.log_path)
+
         self.softmax = torch.nn.Softmax(dim=1)
         self.pixelSuffle = torch.nn.PixelShuffle(8)
         self.model.eval()
@@ -68,7 +70,7 @@ class SuperPoint():
             input = Cuda(sample['image_gray'])
             names = sample['filename']
             bsize=input.size(0)
-
+            
             if(self.UseScales):
                 input=input.view(-1,1,input.shape[2],input.shape[3])
 
@@ -83,17 +85,6 @@ class SuperPoint():
                 
                 keypoints = self.GetPoints(detectorOutput[i].unsqueeze(0), self.confidence_thres_superpoint, self.nms_thres_superpoint)
                 
-
-                # import matplotlib
-                # import matplotlib.pyplot as plt
-                # fig, ax = plt.subplots(1)
-                # ax.set_axis_off()
-                # ax.imshow(input[i,0:1].detach().cpu().numpy().transpose(1,2,0),cmap='gray', vmin=0.0, vmax=1.0)
-                # ax.scatter(keypoints[:, 0].cpu().detach().numpy(), keypoints[:, 1].cpu().detach().numpy())
-                # # ax.scatter(bounding_box[[0,2]].cpu().detach().numpy(), bounding_box[[1,3]].cpu().detach().numpy())
-                # plt.show()
-                # fig.savefig(f'/home/SERILOCAL/d.mallis/Projects/UnsupervisedLandmarks/foo.jpg')
-                # # fig.savefig(f'/home/SERILOCAL/d.mallis/Logs/test2/epoch15_{i}.jpg')
                 
                 if (self.RemoveBackgroundClusters):
                     bounding_box=sample['bounding_box'][i]
@@ -113,28 +104,18 @@ class SuperPoint():
                     pointsinbox[(keypoints[:, 1] > int(bounding_box[3]))] = -1
                     keypoints=keypoints[pointsinbox==1]
 
-
-                # import matplotlib
-                # import matplotlib.pyplot as plt
-                # fig, ax = plt.subplots(1)
-                # ax.set_axis_off()
-                # ax.imshow(input[i,0:1].detach().cpu().numpy().transpose(1,2,0),cmap='gray', vmin=0.0, vmax=1.0)
-                # ax.scatter(keypoints[:, 0].cpu().detach().numpy(), keypoints[:, 1].cpu().detach().numpy())
-                # ax.scatter(bounding_box[[0,2]].cpu().detach().numpy(), bounding_box[[1,3]].cpu().detach().numpy())
-                # plt.show()
-                # fig.savefig(f'/home/SERILOCAL/d.mallis/Projects/UnsupervisedLandmarks/foo2.jpg')
-                # # fig.savefig(f'/home/SERILOCAL/d.mallis/Logs/test2/epoch15_{i}.jpg')
-                
-                # import time
-                
-
-                descriptors = GetDescriptors(descriptorOutput[i], keypoints, imagesize, imagesize)
+                descriptors = GetDescriptors(descriptorOutput[i], keypoints, input.shape[3], input.shape[2])
 
                 #scale image keypoints to FAN resolution
-                keypoints=dataloader.dataset.scaleforFAN(dataloader.dataset,names[i],keypoints)
+                keypoints=dataloader.dataset.keypointsToFANResolution(dataloader.dataset,names[i],keypoints)
+
+
+
                 keypoints = ((heatmapsize/imagesize)*keypoints).round()
 
-  
+
+
+
                 last_index += len(keypoints)
                 buffer_last_index += len(keypoints)
 
@@ -199,7 +180,13 @@ class SuperPoint():
             start,end=keypoint_indexes[image]
             inliersinimage=inliersindexes[start:end]
             keypoints=Keypoints[start:end,:]
+
+ 
+            inliersinimage[np.sum(keypoints[:,:2]<0 ,1)>0]=False
+            inliersinimage[np.sum(keypoints[:,:2]>64 ,1)>0]=False
+
             keypoints=keypoints[inliersinimage]
+
 
             image_descriptors=clustering.preprocess_features(Descriptors[start:end])
             image_descriptors=image_descriptors[inliersinimage]
@@ -247,6 +234,7 @@ class SuperPoint():
         gpu_index_flat.train(clustering.preprocess_features(Descriptors[:buffersize]))
         gpu_index_flat.add(clustering.preprocess_features(Descriptors[:buffersize]))
 
+        #we process the descriptors in batches of 10000 vectors
         rg = np.linspace(0, len(Descriptors), math.ceil(len(Descriptors) / 10000) + 1, dtype=int)
         keypoints_outlier_score=np.zeros(len(Keypoints))
         for i in range(len(rg) - 1):
@@ -262,7 +250,10 @@ class SuperPoint():
         inliers = keypoints_outlier_score < threshold
         return inliers
 
+    
 
+    # For constant background datasets like Human3.6 we use this method to discur background keypoints inside the objects bounding box. 
+    # We cluster foreground and background keypoints seperately. Then remove keypoints whos descriptors are closer to background centroids.   
     def Indexes_of_BackgroundPoints(self,Keypoints,Descriptors,keypoint_indexes):
         backgroundpoitnsIndex = Keypoints[:, 2] == -1
         insideboxPoitnsIndex = Keypoints[:, 2] == 1

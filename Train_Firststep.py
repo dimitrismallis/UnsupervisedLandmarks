@@ -48,8 +48,6 @@ def main():
     log_path=paths['log_path']
     path_to_superpoint_checkpoint=paths['path_to_superpoint_checkpoint']
     
-    Utils.initialize_log_dirs(experiment_name, log_path)
-
     LogText(f"Experiment Name {experiment_name}\n"
             f"Database {dataset_name}\n"
             "Training Parameters: \n"
@@ -74,18 +72,14 @@ def main():
                   iaa.GaussianBlur(sigma=(0, 0.5))
                   ),
     iaa.ContrastNormalization((0.85, 1.3)),
-    iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
+    iaa.Sometimes(0.5,
+        iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5)
+        )
+    ,
     iaa.Multiply((0.9, 1.1), per_channel=0.2),
-
     iaa.Sometimes(0.3,
                   iaa.MultiplyHueAndSaturation((0.5, 1.5), per_channel=True),
                   ),
-    iaa.Sometimes(0.2,
-                  iaa.OneOf([
-                      iaa.CoarseDropout(
-                          (0.05, 0.15), size_percent=(0.01, 0.02),
-                      ),
-                  ])),
     iaa.Affine(
         scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
         translate_percent={"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
@@ -122,7 +116,8 @@ def main():
 
     if(resume):
         path_to_checkpoint,path_to_keypoints=Utils.GetPathsResumeFirstStep(experiment_name,log_path)
-        FAN.load_trained_fiststep_model(path_to_checkpoint)
+        if(path_to_checkpoint is not None):
+            FAN.load_trained_fiststep_model(path_to_checkpoint)
         keypoints=Utils.load_keypoints(path_to_keypoints)
     else:
         #get initial pseudo-groundtruth by applying superpoint on the training data

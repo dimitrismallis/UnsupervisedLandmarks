@@ -7,6 +7,8 @@ import imgaug.augmentables.kps
 import cv2
 import random
 import yaml
+import torchfile
+import scipy.io
 
 class Database(Dataset):
     def __init__(self,dataset_name,number_of_channels,test=False,image_keypoints=None, function_for_dataloading=None,augmentations=None,use_box=False):
@@ -18,7 +20,6 @@ class Database(Dataset):
         self.preparedb()
         self.function_for_dataloading = function_for_dataloading
         self.augmentations=augmentations
-        
         self.SuperpointScaleDistill1 = iaa.Affine(scale={"x": 1.3, "y": 1.3})
         self.SuperpointScaleDistill2 = iaa.Affine(scale={"x": 1.6, "y": 1.6})
         
@@ -77,8 +78,6 @@ class Database(Dataset):
         return sample
 
 
-
-
     def get_FAN_inference(self,idx):
     
         name = self.files[idx]
@@ -91,9 +90,10 @@ class Database(Dataset):
 
     def get_FAN_secondStep_evaluation(self,idx):     
         name = self.files[idx]
-        image =self.getimage_FAN(self,name)
-        image =torch.from_numpy(image / 255.0).permute(2, 0, 1).float()
         is_it_test_sample=bool(self.is_test_sample[idx])
+        image =self.getimage_FAN(self,name,is_it_test_sample=is_it_test_sample)
+        image =torch.from_numpy(image / 255.0).permute(2, 0, 1).float()
+        
         groundtruth=torch.from_numpy(self.getGroundtruth(self,name,is_it_test_sample))
         sample = {'image': image, 'filename': name,'groundtruth':groundtruth,'is_it_test_sample':is_it_test_sample}
         return sample
@@ -103,37 +103,24 @@ class Database(Dataset):
 
         name = self.files[idx]
         keypoints = self.image_keypoints[name]
-        image =self.getimage_FAN(self,name)
+        image,keypoints =self.getimage_FAN(self,name,self.augmentations, 4 * keypoints)
 
 
-        imgaug_keypoints = []
-
-        for i in range(len(keypoints)):
-            imgaug_keypoints.append(Keypoint(x=4*keypoints[i, 0], y=4*keypoints[i, 1]))
-        kpsoi = KeypointsOnImage(imgaug_keypoints, shape=image.shape)
-        image, keypoitns_aug = self.augmentations(image=image, keypoints=kpsoi)
-
-        keypoints = np.column_stack((keypoitns_aug.to_xy_array() / 4, keypoints[:, 2:]))
-
+        keypoints = keypoints/4
+        keypoints=keypoints.round()
 
         image = torch.from_numpy(image / 255.0).permute(2, 0, 1).float()
-
         heatmaps_with_keypoints = torch.zeros(self.number_of_channels).bool()
         indeces = torch.from_numpy(keypoints[:, 2]).int().tolist()
         heatmaps_with_keypoints[indeces] = True
         shapegaussian = BuildMultiChannelGaussians(self.number_of_channels, keypoints.round())
 
         sample = {'image': image, 'GaussianShape': shapegaussian, 'heatmaps_with_keypoints': heatmaps_with_keypoints}
-
         return sample
 
 
-    def get_FAN_firstStep_train(self,idx):
-
-        imagesize=256
+    def get_FAN_firstStep_train(self, idx):     
         heatmapsize=64
-        keypointscaler=int(imagesize/heatmapsize)
-
         name1 = self.files[idx]
         keypoints1 = self.image_keypoints[name1]
 
@@ -142,17 +129,9 @@ class Database(Dataset):
             name1 = self.files[idx]
             keypoints1 = self.image_keypoints[name1]
 
-        image1 =self.getimage_FAN(self,name1)
+        image1 ,keypoints1=self.getimage_FAN(self,name1,self.augmentations,4*keypoints1)
         
-
-        imgaug_keypoints = []
-
-        for i in range(len(keypoints1)):
-            imgaug_keypoints.append(Keypoint(x=keypointscaler*keypoints1[i, 0], y=keypointscaler*keypoints1[i, 1]))
-        kpsoi = KeypointsOnImage(imgaug_keypoints, shape=image1.shape)
-        image1, keypoitns_aug = self.augmentations(image=image1, keypoints=kpsoi)
-
-        keypoints1 = np.column_stack((keypoitns_aug.to_xy_array()/keypointscaler, keypoints1[:, 2:]))
+        keypoints1 = keypoints1/4
         keypoints1=keypoints1.round()
 
         image1 = torch.from_numpy(image1 / 255.0).permute(2, 0, 1).float()
@@ -168,28 +147,21 @@ class Database(Dataset):
                 name2 = self.files[idx2]
                 keypoints2 = self.image_keypoints[name2]
 
-            image2 =self.getimage_FAN(self,name2)
+            image2 ,keypoints2=self.getimage_FAN(self,name2,self.augmentations,4*keypoints2)
             
 
         else:
             name2 = self.files[idx]
-            image2 =self.getimage_FAN(self,name2)
             keypoints2 = self.image_keypoints[name2]
+            image2 ,keypoints2=self.getimage_FAN(self,name2,self.augmentations,4*keypoints2)
 
-
-        imgaug_keypoints = []
-        for i in range(len(keypoints2)):
-            imgaug_keypoints.append(Keypoint(x=keypointscaler*keypoints2[i, 0], y=keypointscaler*keypoints2[i, 1]))
-        kpsoi = KeypointsOnImage(imgaug_keypoints, shape=image2.shape)
-        image2, keypoitns_aug = self.augmentations(image=image2, keypoints=kpsoi)
-
-        keypoints2 = np.column_stack((keypoitns_aug.to_xy_array()/keypointscaler, keypoints2[:, 2:]))
+        keypoints2=keypoints2.round()
+        keypoints2 = keypoints2/4
         keypoints2=keypoints2.round()
 
         image2 = torch.from_numpy(image2 / 255.0).permute(2, 0, 1).float()
 
         image = torch.cat((image1, image2))
-
         number_of_pairs=3000
         pairs = -1*np.ones((number_of_pairs, 5))
         pair_index = 0
@@ -243,11 +215,28 @@ class Database(Dataset):
 
 
 
+
+
     def preparedb(self):
-        if self.dataset_name == 'CelebA':
+
+        def GetFullImagePath(self,imagefile,istestsample=False):
+            if self.dataset_name =='CelebA': 
+                    return self.datapath+imagefile
+
+            if self.dataset_name =='Human3.6': 
+                return self.imagepath+imagefile
             
-            def scaleforFAN(self,imagefile,keypoints):
-                bbox = self.boxes[imagefile].copy()
+            if self.dataset_name =='LS3D':
+                if(istestsample):
+                    return  imagefile
+                return self.datapath+imagefile
+
+
+
+        if self.dataset_name in ['CelebA','LS3D']:
+            
+            def getFANBox(self,imagefile,W,H,is_test_sample=False):
+                bbox = self.getbox(self,imagefile,is_test_sample)
                 delta_x=1.2*bbox[2]-bbox[0]
                 delta_y=2*bbox[3]-bbox[1]
                 delta=0.5*(delta_x+delta_y)
@@ -257,199 +246,314 @@ class Database(Dataset):
 
                 minx=int(max(bbox[0]-tight_aux,0))
                 miny=int(max(bbox[1]-tight_aux,0))
-                maxx=int(min(bbox[2]+tight_aux,178-1))
-                maxy=int(min(bbox[3]+tight_aux,218-1))
+                maxx=int(min(bbox[2]+tight_aux,W-1))
+                maxy=int(min(bbox[3]+tight_aux,H-1))
+
+                return minx,miny,maxx,maxy
+
+            def keypointsToFANResolution(self,imagefile,keypoints,W=None,H=None,is_test_sample=False):
                 
+                if(W is None or H is Nnone):
+                    W=self.W
+                    H=self.H
+                minx,miny,maxx,maxy=self.getFANBox(self,imagefile,W,H,is_test_sample)
+
                 keypoints[:,0]=keypoints[:,0]-minx
                 keypoints[:,1]=keypoints[:,1]-miny
                 keypoints[:,0]=keypoints[:,0]*(256/(maxx-minx))
                 keypoints[:,1]=keypoints[:,1]*(256/(maxy-miny))
                 return keypoints
 
-            def getbox(self,imagefile):
+
+            def keypointsToOriginalResolution(self,imagefile,keypoints):
+
+                minx,miny,maxx,maxy=self.getFANBox(self,imagefile,self.W,self.H)
+                
+                keypoints[:,0]=keypoints[:,0]*((maxx-minx)/256)
+                keypoints[:,1]=keypoints[:,1]*((maxy-miny)/256)
+                keypoints[:,0]=keypoints[:,0]+minx
+                keypoints[:,1]=keypoints[:,1]+miny
+                return keypoints
+
+            def getbox(self,imagefile,is_test_sample=False):
                 bbox = self.boxes[imagefile].copy()
                 return bbox
+            
+            def getbox_fromlandmarks_ls3d_eval(self,imagefile,is_test_sample=False):
+                
+                try:
+                    if(is_test_sample):  
+                        gt=torchfile.load(imagefile[:-4]+'.t7')
+                    else:
+                        gt_filename=self.GetFullImagePath(self,imagefile,is_test_sample)[:-4]+'.t7'
+                        tempstring=gt_filename.split('/')
+                        tempstring.insert(-2,'landmarks')
+                        tempstring='/'.join(tempstring)
+                        gt_filename=tempstring[:-3]+'_pts.mat'
+                        gt=scipy.io.loadmat(gt_filename)['pts_3d']
+                except:
+                   pass         
+            
+                
+                bbox=[0,0,0,0]
+                bbox[0]=int(min(gt[:,0]))
+                bbox[1]=int(min(gt[:,1]))
+                bbox[2]=int(max(gt[:,0]))
+                bbox[3]=int(max(gt[:,1]))
 
-            def getGroundtruth(self,imagefile,is_test_sample):
+                bbox[1]=bbox[1]-(bbox[3]-bbox[1])/3
+                return bbox
+
+
+            def getGroundtruth_MALF(self,imagefile,is_test_sample):
                 groundtruthpoints=self.groundtruth[imagefile]
-                groundtruthpoints=self.scaleforFAN(self,imagefile,groundtruthpoints)
+                groundtruthpoints=self.keypointsToFANResolution(self,imagefile,groundtruthpoints,self.W,self.H)
+                return groundtruthpoints
+            
+
+            def getGroundtruth_LS3D(self,imagefile,is_test_sample):
+                image = cv2.cvtColor(cv2.imread(self.GetFullImagePath(self,imagefile,is_test_sample)), cv2.COLOR_BGR2RGB)
+                if(is_test_sample):  
+                    groundtruthpoints=torchfile.load(imagefile[:-4]+'.t7')
+                else:
+                    gt_filename=self.GetFullImagePath(self,imagefile,is_test_sample)[:-4]+'.t7'
+                    tempstring=gt_filename.split('/')
+                    tempstring.insert(-2,'landmarks')
+                    tempstring='/'.join(tempstring)
+                    gt_filename=tempstring[:-3]+'_pts.mat'
+                    groundtruthpoints=scipy.io.loadmat(gt_filename)['pts_3d']
+                
+                groundtruthpoints=self.keypointsToFANResolution(self,imagefile,groundtruthpoints,image.shape[1],image.shape[0],is_test_sample)
                 return groundtruthpoints
 
             def getimage_superpoint(self,imagefile):
-                image = cv2.cvtColor(cv2.imread(self.datapath +imagefile), cv2.COLOR_BGR2RGB)
+                image = cv2.cvtColor(cv2.imread(self.GetFullImagePath(self,imagefile,False)), cv2.COLOR_BGR2RGB)
                 return image
 
-            def getimage_FAN(self,imagefile):
-                image = cv2.cvtColor(cv2.imread(self.datapath +imagefile), cv2.COLOR_BGR2RGB)
-                bbox = self.boxes[imagefile].copy()
-                
-                delta_x=1.2*bbox[2]-bbox[0]
-                delta_y=2*bbox[3]-bbox[1]
-                delta=0.5*(delta_x+delta_y)
-                if(delta<20): tight_aux=8
-                else: tight_aux=int(8*delta/100)
 
-                minx=int(max(bbox[0]-tight_aux,0))
-                miny=int(max(bbox[1]-tight_aux,0))
-                maxx=int(min(bbox[2]+tight_aux,image.shape[1]-1))
-                maxy=int(min(bbox[3]+tight_aux,image.shape[0]-1))
+            def getimage_FAN(self,imagefile, augmentations=None, keypoints=None,is_it_test_sample=False):
+
+                image = cv2.cvtColor(cv2.imread(self.GetFullImagePath(self,imagefile,is_it_test_sample)), cv2.COLOR_BGR2RGB)
+                
+                if(augmentations is not None):
+                    keypoints_originalres=self.keypointsToOriginalResolution(self,imagefile,keypoints)
+                    imgaug_keypoints = []
+                    for i in range(len(keypoints)):
+                        imgaug_keypoints.append(Keypoint(x=keypoints_originalres[i, 0], y=keypoints_originalres[i, 1]))
+                    kpsoi = KeypointsOnImage(imgaug_keypoints, shape=image.shape)
+                    image, keypoitns_aug = self.augmentations(image=image, keypoints=kpsoi)
+
+                    keypoints_originalres = np.column_stack((keypoitns_aug.to_xy_array(), keypoints_originalres[:, 2:]))
+
+
+                minx,miny,maxx,maxy=self.getFANBox(self,imagefile,image.shape[1],image.shape[0],is_it_test_sample)
 
                 image=image[miny:maxy,minx:maxx,:]
                 image=cv2.resize(image,dsize=(256,256))
-    
+
+                if(keypoints is not None):
+                    augmentedkeypoints=self.keypointsToFANResolution(self,imagefile,keypoints_originalres,self.W,self.H)
+
+
+                    return image,augmentedkeypoints
+                
                 return image
 
-
+            self.GetFullImagePath=GetFullImagePath
+            self.keypointsToOriginalResolution=keypointsToOriginalResolution
+            self.keypointsToFANResolution=keypointsToFANResolution
             self.getimage_superpoint=getimage_superpoint
             self.getimage_FAN=getimage_FAN
             self.getbox=getbox
-            self.scaleforFAN=scaleforFAN
-            self.getGroundtruth=getGroundtruth
-
-            #load CelebA paths
-            with open('paths/CelebA.yaml') as file:
-                paths = yaml.load(file, Loader=yaml.FullLoader)
-            self.datapath = paths['datapath']
-            path_to_boxes= paths['path_to_boxes']
-            self.boxes=load_keypoints(path_to_boxes)
-
-            def init(self):
+            self.getFANBox=getFANBox
             
-                #load CelebA paths
-                with open('paths/CelebA.yaml') as file:
-                    paths = yaml.load(file, Loader=yaml.FullLoader)
 
-                list_eval_partition= paths['list_eval_partition']
-                mafl_testing= paths['mafl_testing']
-                mafl_training= paths['mafl_training']
-                
+
+        if self.dataset_name == 'CelebA':
+            #load CelebA paths
+            with open('paths/main.yaml') as file:
+                paths = yaml.load(file, Loader=yaml.FullLoader)
+            self.datapath = paths['CelebA_datapath']
+            self.boxes=load_keypoints('data/CelebA/CelebABoundingBoxes.pickle')
+            self.H=218
+            self.W=178
+            
+            def init(self):           
                 if (self.test):
-                    with open(mafl_testing, 'r') as f:
+                    with open('data/CelebA/mafl_testing.txt', 'r') as f:
                         TestImages = f.read().splitlines()
-                    with open(mafl_training, 'r') as f:
+                    with open('data/CelebA/mafl_training.txt', 'r') as f:
                         TrainImages = f.read().splitlines()
                     
-
-                    mafl_groundtruth= paths['mafl_groundtruth']
-                    self.groundtruth=load_keypoints(mafl_groundtruth)
-
+                    self.groundtruth=load_keypoints('data/CelebA/MaflGroundtruthLandmarks.pickle')
                     self.files = TrainImages[:1000] + TestImages
                     self.is_test_sample = np.ones(len(self.files))
                     self.is_test_sample[:1000]=0
+                    self.getGroundtruth=getGroundtruth_MALF
                 else:
 
-                    self.boxes=load_keypoints(path_to_boxes)
-
-                    with open(list_eval_partition, 'r') as f:
+                    with open('data/CelebA/list_eval_partition.txt', 'r') as f:
                         CelebAImages = f.read().splitlines()
 
                     CelebATrainImages=[f[:-2] for f in CelebAImages if f[-1]=='0']
-
-                    with open(mafl_testing, 'r') as f:
+                    with open('data/CelebA/mafl_testing.txt', 'r') as f:
                         MaflTestImages = f.read().splitlines()
 
                     CelebATrainImages=list(set(CelebATrainImages)-set(MaflTestImages))
-
                     self.files = CelebATrainImages
 
         if self.dataset_name == 'LS3D':
+        
+            with open('paths/main.yaml') as file:
+                paths = yaml.load(file, Loader=yaml.FullLoader)
+            self.datapath = paths['300WLP_datapath']
+            self.path_to_LS3Dbalanced=paths['LS3Dbalanced_datapath']
+
+            self.boxes=load_keypoints('data/LS3D/300W_LPBoundingBoxes.pickle')
             
-            def scaleforFAN(self,imagefile,keypoints):
-                bbox = self.boxes[imagefile].copy()
-                delta_x=1.2*bbox[2]-bbox[0]
-                delta_y=2*bbox[3]-bbox[1]
-                delta=0.5*(delta_x+delta_y)
+            self.H=450
+            self.W=450   
 
-                if(delta<20): tight_aux=8
-                else: tight_aux=int(8*delta/100)
+            def init(self):
+                         
+                if (self.test):
+                    self.getbox=getbox_fromlandmarks_ls3d_eval
+                    self.getGroundtruth=getGroundtruth_LS3D
+                    testfiles = glob.glob(self.path_to_LS3Dbalanced + '/**/*.jpg', recursive=True)
+                    trainfiles= list(self.boxes.keys())
+                   
+                    self.files=trainfiles[:1000]+testfiles
+                    self.is_test_sample = np.ones(len(self.files))
+                    self.is_test_sample[:1000]=0
+                else:
+                    self.files = list(self.boxes.keys())
 
-                minx=int(max(bbox[0]-tight_aux,0))
-                miny=int(max(bbox[1]-tight_aux,0))
-                maxx=int(min(bbox[2]+tight_aux,178-1))
-                maxy=int(min(bbox[3]+tight_aux,218-1))
-                
-                keypoints[:,0]=keypoints[:,0]-minx
-                keypoints[:,1]=keypoints[:,1]-miny
-                keypoints[:,0]=keypoints[:,0]*(256/(maxx-minx))
-                keypoints[:,1]=keypoints[:,1]*(256/(maxy-miny))
+        if self.dataset_name == 'Human3.6':
+            
+            def tranformKeypoints(self,keypoints,augmentation,imageshape):
+                imgaug_keypoints = []
+                for i in range(len(keypoints)):
+                    imgaug_keypoints.append(Keypoint(x=keypoints[i, 0], y=keypoints[i, 1]))
+                kpsoi = KeypointsOnImage(imgaug_keypoints, shape=imageshape)
+                keypoitns_aug = augmentation(keypoints=kpsoi)
+                if(isinstance(keypoints,np.ndarray)):
+                    keypoints[:,:2] = keypoitns_aug.to_xy_array()
+                else:
+                    keypoints[:,:2] = torch.from_numpy(keypoitns_aug.to_xy_array())
                 return keypoints
 
-            def getbox(self,imagefile):
-                import torchfile
-                keypoints=torchfile.load(imagefile[:-3]+'t7')
+            def keypointsToFANResolution(self,imagefile,keypoints):
+                return self.tranformKeypoints(self,keypoints,self.scaleToFANRes,(450,450))
+
+            def keypointsToOriginalResolution(self,imagefile,keypoints):
+                return self.tranformKeypoints(self,keypoints,self.scaleToOriginalRes,(256,256))
+
+            def getbox(self,imagefile,is_test_sample=False):
                 bbox = self.boxes[imagefile].copy()
                 return bbox
 
             def getGroundtruth(self,imagefile,is_test_sample):
                 groundtruthpoints=self.groundtruth[imagefile]
-                groundtruthpoints=self.scaleforFAN(self,imagefile,groundtruthpoints)
+                groundtruthpoints=self.flipGroundtruths(self,groundtruthpoints)
+                groundtruthpoints=self.keypointsToFANResolution(self,imagefile,groundtruthpoints)
                 return groundtruthpoints
 
             def getimage_superpoint(self,imagefile):
-                image = cv2.cvtColor(cv2.imread(imagefile), cv2.COLOR_BGR2RGB)
-
-                import matplotlib
-                import matplotlib.pyplot as plt
-                fig, ax = plt.subplots(1)
-                ax.set_axis_off()
-                ax.imshow(image)
-                # ax.scatter(keypoints[:, 0].cpu().detach().numpy(), keypoints[:, 1].cpu().detach().numpy())
-                # ax.scatter(bounding_box[[0,2]].cpu().detach().numpy(), bounding_box[[1,3]].cpu().detach().numpy())
-                plt.show()
-                fig.savefig(f'/home/SERILOCAL/d.mallis/Projects/UnsupervisedLandmarks/foo.jpg')
-                # fig.savefig(f'/home/SERILOCAL/d.mallis/Logs/test2/epoch15_{i}.jpg')
-                
-
+                image = cv2.cvtColor(cv2.imread(self.GetFullImagePath(self,imagefile,False)), cv2.COLOR_BGR2RGB)
                 return image
 
-            def getimage_FAN(self,imagefile):
-                image = cv2.cvtColor(cv2.imread(self.datapath +imagefile), cv2.COLOR_BGR2RGB)
-                bbox = self.boxes[imagefile].copy()
+            def getimage_FAN(self,imagefile, augmentations=None, keypoints=None,is_it_test_sample=False):
+
+                image = cv2.cvtColor(cv2.imread(self.GetFullImagePath(self,imagefile,is_it_test_sample)), cv2.COLOR_BGR2RGB)
                 
-                delta_x=1.2*bbox[2]-bbox[0]
-                delta_y=2*bbox[3]-bbox[1]
-                delta=0.5*(delta_x+delta_y)
-                if(delta<20): tight_aux=8
-                else: tight_aux=int(8*delta/100)
+                if(augmentations is not None):
+                    keypoints_originalres=self.keypointsToOriginalResolution(self,imagefile,keypoints)
+                    imgaug_keypoints = []
+                    for i in range(len(keypoints)):
+                        imgaug_keypoints.append(Keypoint(x=keypoints_originalres[i, 0], y=keypoints_originalres[i, 1]))
+                    kpsoi = KeypointsOnImage(imgaug_keypoints, shape=image.shape)
+                    image, keypoitns_aug = self.augmentations(image=image, keypoints=kpsoi)
 
-                minx=int(max(bbox[0]-tight_aux,0))
-                miny=int(max(bbox[1]-tight_aux,0))
-                maxx=int(min(bbox[2]+tight_aux,image.shape[1]-1))
-                maxy=int(min(bbox[3]+tight_aux,image.shape[0]-1))
-
-                image=image[miny:maxy,minx:maxx,:]
-                image=cv2.resize(image,dsize=(256,256))
-    
-                return image
+                    keypoints_originalres = np.column_stack((keypoitns_aug.to_xy_array(), keypoints_originalres[:, 2:]))
 
 
+                scaledImage=self.scaleToFANRes(image=image)
+                
+                if(keypoints is not None):
+                    augmentedkeypoints=self.keypointsToFANResolution(self,imagefile,keypoints_originalres)
+
+
+
+
+                    return scaledImage,augmentedkeypoints
+                return scaledImage
+            
+            def flipGroundtruths(self,keypoints):
+                keypoints = np.concatenate( (keypoints,np.expand_dims(np.array(range(len(keypoints))), axis=1)), axis=1)
+                matchedPart1 = np.array( [[1, 6],  [25, 17], [18, 26], [27, 19], [20, 28], [29, 21], [30, 22], [31, 23],  ])
+                matchedPart2 = np.array( [[2, 7],[3, 8], [4, 9], [5, 10]])
+
+                if (keypoints[1, 0]  >keypoints[6, 0]):
+                    for i in range(matchedPart1.shape[0]):
+                        idx1, idx2 = matchedPart1[i]
+                        temp = keypoints[idx1,2]
+                        keypoints[idx1,2] = keypoints[idx2,2]
+                        keypoints[idx2,2] = temp
+
+                if (keypoints[2, 0] > keypoints[7, 0]):
+                    for i in range(matchedPart2.shape[0]):
+                        idx1, idx2 = matchedPart2[i]
+                        temp = keypoints[idx1, 2]
+                        keypoints[idx1, 2] = keypoints[idx2, 2]
+                        keypoints[idx2, 2] = temp
+                
+                keypoints=keypoints[np.argsort(keypoints[:,2])]
+                keypoints=keypoints[:,:2]
+                return keypoints
+
+
+            self.flipGroundtruths=flipGroundtruths
+            self.GetFullImagePath=GetFullImagePath
+            self.tranformKeypoints=tranformKeypoints
+            self.keypointsToOriginalResolution=keypointsToOriginalResolution
+            self.keypointsToFANResolution=keypointsToFANResolution
             self.getimage_superpoint=getimage_superpoint
             self.getimage_FAN=getimage_FAN
             self.getbox=getbox
-            self.scaleforFAN=scaleforFAN
             self.getGroundtruth=getGroundtruth
 
-            with open('paths/LS3D.yaml') as file:
+            with open('paths/main.yaml') as file:
                 paths = yaml.load(file, Loader=yaml.FullLoader)
-            self.datapath = paths['datapath']
+            self.datapath = paths['Human_datapath']
+            self.imagepath=self.datapath + 'images'
 
-        
-            def init(self):            
+            try:
+                self.boxes=load_keypoints(self.datapath+'HumanBoundingBoxes.pickle')
+            except:
+                filename=self.datapath+'HumanBoundingBoxes.pickle'
+                raise Exception('File '+filename+' was not found ')
+
+            try:
+                self.groundtruth=load_keypoints(self.datapath+'GroundtruthKeypoints.pickle')
+            except:
+                filename=self.datapath+'GroundtruthKeypoints.pickle'
+                raise Exception('File '+filename+' was not found ')
+
+
+            self.scaleToFANRes = iaa.Sequential([iaa.Affine(scale={"x": 1.4, "y": 1.4}), iaa.Resize(256)])
+            self.scaleToOriginalRes = iaa.Sequential([iaa.Resize(450), iaa.Affine(scale={"x": 1/1.4, "y": 1/1.4})])
+            def init(self):
+                self.files = list(k for k in self.boxes.keys())
                 if (self.test):
-                    with open(mafl_testing, 'r') as f:
-                        TestImages = f.read().splitlines()
-                    with open(mafl_training, 'r') as f:
-                        TrainImages = f.read().splitlines()
                     
-                    mafl_groundtruth= paths['mafl_groundtruth']
-                    self.groundtruth=load_keypoints(mafl_groundtruth)
+                    filestrain=[f for f in self.files if 'train' in f][::50]
+                    filestest=[f for f in self.files if 'test' in f]
 
-                    self.files = TrainImages[:1000] + TestImages
+                    self.files=filestrain[:1000]+filestest
                     self.is_test_sample = np.ones(len(self.files))
                     self.is_test_sample[:1000]=0
                 else:
-                    self.files = glob.glob(self.datapath + '/**/*.jpg', recursive=True)+glob.glob(self.datapath + '/**/*.png', recursive=True)
-
+                    self.files=[f for f in self.files if 'train' in f]
         if (self.image_keypoints is not None):
             self.files = list(self.image_keypoints.keys())
         else:

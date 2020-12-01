@@ -90,13 +90,10 @@ def main():
         FAN.load_trained_secondstep_model(path_to_checkpoint)
         keypoints = Utils.load_keypoints(path_to_keypoints)
     else:
-        path_to_checkpoint,path_to_keypoints=Utils.GetPathsFromExperiment(experiment_name,log_path)
+        path_to_checkpoint,path_to_keypoints=Utils.GetPathsTrainSecondStep(experiment_name,log_path)
         FAN.init_secondstep(lr,weight_decay,batch_multiplier,number_of_clusters,lrstep,clusteroverlap,path_to_checkpoint=path_to_checkpoint)
         keypoints = Utils.load_keypoints(path_to_keypoints)
         FAN.RemoveSmallClusters(keypoints)
-
-    #load keypoints of the first step
-    LogText(f"Keypoints loaded from path: {path_to_keypoints}", experiment_name, log_path)
 
     #initial dataloader
     dataset = Database( dataset_name, FAN.number_of_clusters, image_keypoints=keypoints,
