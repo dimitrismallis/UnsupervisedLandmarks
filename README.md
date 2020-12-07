@@ -1,7 +1,7 @@
 # Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS2020)
 ### Dimitrios Mallis, Enrique Sanchez, Matt Bell, Georgios Tzimiropoulos
 
-This software implements a 2 step process that discovers object landmarks given only images of a specific category, as discussed in this [paper](https://papers.nips.cc/paper/2020/file/32508f53f24c46f685870a075eaaa29c-Paper.pdf).
+This repository contatins the training and evaluation code for our NeurIPS 2020 paper ["Unsupervised Learning of Object Landmarks via Self-Training Correspondence"](https://papers.nips.cc/paper/2020/file/32508f53f24c46f685870a075eaaa29c-Paper.pdf). The sofware learns a deep landmark detector, directly from raw images of a specific object category, without requiring any manual annotations.
 
 
 ![alt text](images/repo1.png "Method Description")
@@ -146,3 +146,16 @@ We provide also pretrained models. Can be used to execute the testing script and
 | **Human3.6**   |  _Human\_pretrained_ | [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EcEzAHL5145DmioGpQp8P9sBtm-DOkE7BmL21qVg0k_2Og?e=s8IqpE) |
 
 Simply uncompress the .zip files inside `log_path/CheckPoints/`.
+
+
+## Citation
+If you found this code usefull please consider citing:
+
+```
+@inproceedings{unsupervLandm2020,
+title={Unsupervised Learning of Object Landmarks via Self-Training Correspondence},
+author={Mallis, Dimitrios and Sanchez, Enrique and Bell, Matt and Tzimiropoulos, Georgios},
+booktitle={Conference on Neural Information Processing Systems (NeurIPS)},
+year={2020}
+}
+```
