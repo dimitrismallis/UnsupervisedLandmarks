@@ -1,7 +1,7 @@
 # Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS2020)
 ### Dimitrios Mallis, Enrique Sanchez, Matt Bell, Georgios Tzimiropoulos
 
-This repository contatins the training and evaluation code for our NeurIPS 2020 paper ["Unsupervised Learning of Object Landmarks via Self-Training Correspondence"](https://papers.nips.cc/paper/2020/file/32508f53f24c46f685870a075eaaa29c-Paper.pdf). The sofware learns a deep landmark detector, directly from raw images of a specific object category, without requiring any manual annotations.
+This repository contains the training and evaluation code for our NeurIPS 2020 paper ["Unsupervised Learning of Object Landmarks via Self-Training Correspondence"](https://papers.nips.cc/paper/2020/file/32508f53f24c46f685870a075eaaa29c-Paper.pdf). The sofware learns a deep landmark detector, directly from raw images of a specific object category, without requiring any manual annotations.
 
 
 ![alt text](images/repo1.png "Method Description")
