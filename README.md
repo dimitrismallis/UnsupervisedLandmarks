@@ -149,7 +149,7 @@ Simply uncompress the .zip files inside `log_path/CheckPoints/`.
 
 
 ## Citation
-If you found this code usefull please consider citing:
+If you found this code useful please consider citing:
 
 ```
 @inproceedings{unsupervLandm2020,
