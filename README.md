@@ -45,18 +45,18 @@ Human3.6, database is availiable [here](http://vision.imar.ro/). From the availi
 We provide a python script to preprocess the video data. Before executing the script ensure that download database follows the following path structure:
 
 ```
-training/
+     training/
 	 └── subjects/
 		  └── S1/
 		      └── Video/
-		      |		└── *.mp4
+		      |	    └── *.mp4
 		      │
 		      ├── MyPoseFeatures/
 		      │		└── D2_Positions/
-		      │		 		└── *.cfd
+		      │		      └── *.cfd
 		      └── MySegmentsMat/
-			   			└── ground_truth_bb/
-			   						└── *.mat  
+			        └── ground_truth_bb/
+			   	          └── *.mat  
 ```
 
 
