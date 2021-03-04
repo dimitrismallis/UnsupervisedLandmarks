@@ -15,7 +15,7 @@ class Options():
         self._parser.add_argument('--experiment_name', default='Run1',help='Please assign a unique name for each experiment. Use the same name for both training set 1 and 2.')
         self._parser.add_argument('--dataset_name', choices=['CelebA', 'LS3D','Human3.6'], default='CelebA',help='Select training dataset')
         self._parser.add_argument('--num_workers', default=16, help='Number of workers',type=int)
-        self._parser.add_argument('--resume', default=True, help='If True step1 and 2 will resume form last saved checkpoint and pseudogroundtruth.')
+        self._parser.add_argument('--resume', action='store_true', help='If True step1 and 2 will resume form last saved checkpoint and pseudogroundtruth.')
 
 
     def GetHyperparameters(self,step,dataset_name):

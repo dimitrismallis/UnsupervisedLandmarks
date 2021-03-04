@@ -8,30 +8,48 @@ import datetime
 import torchvision
 import cv2
 import glob
+from pathlib import Path
 
-def LogText(text,Experiment_name,log_path):
+
+
+
+def CheckPaths(paths,dataset_name):
+    assert paths['path_to_superpoint_checkpoint']!=None , "Path missing!! Update 'path_to_superpoint_checkpoint' on paths/main.yaml (link for superpoint_v1.pth availiable on the github repo)"
+    assert os.path.isfile(paths['path_to_superpoint_checkpoint']),  f"File {paths['path_to_superpoint_checkpoint']} does not exists. Update 'path_to_superpoint_checkpoint' on paths/main.yaml (link for superpoint_v1.pth availiable on the github repo)" 												
+
+
+def LogText(text,experiment_name,log_path):
+
+    Experiment_Log_directory=GetLogsPath(experiment_name,log_path)
+    Log_File=Experiment_Log_directory / (experiment_name + '.txt')
+
     print(text + "  (" + datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") + ")")
 
-
-    log_File = log_path + 'Logs/' + Experiment_name + '/' + Experiment_name + '.txt'
-
-    f = open(log_File, 'a')
+    f = open(Log_File, 'a')
     f.write(text + "  (" + datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y") + ")" + '\n')
     f.close()
 
+def GetCheckPointsPath(experiment_name,log_path):
+    log_path=Path(log_path)
+    CheckPointDirectory=log_path / experiment_name / "CheckPoints/"
+    return CheckPointDirectory
+
+def GetLogsPath(experiment_name,log_path):
+    log_path=Path(log_path)
+    Experiment_Log_directory=log_path / experiment_name / "Logs/"
+    return Experiment_Log_directory
 
 def GetPathsForClusterVisualisation(experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +experiment_name + '/*'
-    listoffiles=glob.glob(CheckPointDirectory)
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+    listoffiles=list(str(f.resolve()) for f in CheckPointDirectory.glob('*')) 
     path_to_keypoints=max([f for f in listoffiles if '.pickle' in f and 'UpdatedKeypoints' in f or 'Super' in f], key=os.path.getctime)
     LogText('Keypoints loaded from :'+(str(path_to_keypoints)),experiment_name,log_path)
     return path_to_keypoints
 
 
 def GetPathsTrainSecondStep(experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +experiment_name + '/*'
-    listoffiles=glob.glob(CheckPointDirectory)
-
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+    listoffiles=list(str(f.resolve()) for f in CheckPointDirectory.glob('*')) 
     path_to_checkpoint=max([f for f in listoffiles if '.pth' in f and 'FirstStep' in f ], key=os.path.getctime)
     path_to_keypoints=max([f for f in listoffiles if '.pickle' in f and 'UpdatedKeypoints' in f], key=os.path.getctime)
     LogText('Keypoints loaded from :'+(str(path_to_keypoints)),experiment_name,log_path)
@@ -39,8 +57,9 @@ def GetPathsTrainSecondStep(experiment_name,log_path):
     return path_to_checkpoint,path_to_keypoints
 
 def GetPathsResumeFirstStep(experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +experiment_name + '/*'
-    listoffiles=glob.glob(CheckPointDirectory)
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+
+    listoffiles=list(str(f.resolve()) for f in CheckPointDirectory.glob('*')) 
 
     path_to_keypoints=max([f for f in listoffiles if '.pickle' in f and ('SuperPoint' in f or 'Updated' in f) ] , key=os.path.getctime)
 
@@ -60,8 +79,9 @@ def GetPathsResumeFirstStep(experiment_name,log_path):
     return path_to_checkpoint,path_to_keypoints
 
 def GetPathsResumeSecondStep(experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +experiment_name + '/*'
-    listoffiles=glob.glob(CheckPointDirectory)
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+
+    listoffiles=list(str(f.resolve()) for f in CheckPointDirectory.glob('*')) 
 
     sortedlistoffiles=sorted(listoffiles,key=os.path.getctime)
 
@@ -76,22 +96,23 @@ def GetPathsResumeSecondStep(experiment_name,log_path):
     return path_to_checkpoint,path_to_keypoints
 
 def GetPathsEval(experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +experiment_name + '/*'
-    listoffiles=glob.glob(CheckPointDirectory)
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+
+    listoffiles=list(str(f.resolve()) for f in CheckPointDirectory.glob('*')) 
 
     path_to_checkpoint=max([f for f in listoffiles if '.pth' in f and 'SecondStep' in f], key=os.path.getctime)
     LogText('Checkpoint loaded from :'+(str(path_to_checkpoint)),experiment_name,log_path)
     return path_to_checkpoint
 
-def initialize_log_dirs(Experiment_name,log_path):
-    CheckPointDirectory = log_path+'CheckPoints/' +Experiment_name + '/'
-    Log_directory = log_path+'Logs/' + Experiment_name + '/'
+def initialize_log_dirs(experiment_name,log_path):
 
+    CheckPointDirectory=GetCheckPointsPath(experiment_name,log_path)
+    Experiment_Log_directory=GetLogsPath(experiment_name,log_path)
 
-    if not os.path.exists(Log_directory):
-        os.makedirs(Log_directory)
+    if not Experiment_Log_directory.exists():
+        os.makedirs(Experiment_Log_directory)
 
-    if not os.path.exists(CheckPointDirectory):
+    if not CheckPointDirectory.exists():
         os.makedirs(CheckPointDirectory)
 
 

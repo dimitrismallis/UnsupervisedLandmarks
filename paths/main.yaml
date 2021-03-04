@@ -1,7 +1,7 @@
-# fill this file with the appropriate PATHS
-log_path: PATH
-CelebA_datapath: PATH
-300WLP_datapath: PATH
-LS3Dbalanced_datapath: PATH
-Human_datapath: PATH
-path_to_superpoint_checkpoint: PATH
+# update this file before executing the code
+CelebA_datapath: <pathToCelebA_database>/celeba/Img/img_align_celeba_hq/
+300WLP_datapath: <pathTo300W_LP_database>/300W_LP/
+LS3Dbalanced_datapath: <pathToLS3D-balanced_database>/LS3D-balanced/
+Human_datapath: <pathToHuman3.6_database>/
+path_to_superpoint_checkpoint: <pathToSuperPointCheckPoint>/SuperPointCheckPoint.pth
+log_path: Logs/

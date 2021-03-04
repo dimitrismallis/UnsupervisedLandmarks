@@ -10,13 +10,14 @@ from sklearn.impute import SimpleImputer
 import Utils
 import copy
 import math
-from Utils import LogText
+from Utils import *
 from scipy import linalg
 import numpy as np
 import matplotlib.pyplot as plt
 from matrix_completion import svt_solve, calc_unobserved_rmse
 import pandas as pd
-
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 
 class Evaluator():
     def __init__(self, database_name,experiment_name,log_path):
@@ -50,8 +51,7 @@ class Evaluator():
             titlebac=r"$\bf{Human3.6}$, $\it{Backward}$"
             titlefor=r"$\bf{Human3.6}$, $\it{Forward}$"
 
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as mtick
+
         fig = plt.figure(figsize=(6,6))
         ax = fig.gca()
         ax.set_facecolor('#F8F8F8')
@@ -64,12 +64,13 @@ class Evaluator():
         plt.xlabel('# unsupervised object landmarks', fontsize=20, fontstyle='italic')
         ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         plt.tight_layout()
-        plt.show()
-        fig.savefig(self.log_path + 'Logs/' + self.experiment_name +'/'+self.database_name+ f'BackwardEpoch.jpg')
+   
+
+        filename=GetLogsPath(self.experiment_name,self.log_path) / 'BackwardError.jpg'
+        fig.savefig(filename)
 
 
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as mtick
+
         fig = plt.figure(figsize=(6,6))
         ax = fig.gca()
         ax.set_facecolor('#F8F8F8')
@@ -81,8 +82,11 @@ class Evaluator():
         plt.xlabel('# of groundtruth landmarks', fontsize=20, fontstyle='italic')
         ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         plt.tight_layout()
-        plt.show()
-        fig.savefig(self.log_path + 'Logs/' + self.experiment_name +'/'+self.database_name+ f'ForwardEpoch.jpg')
+
+
+        filename=GetLogsPath(self.experiment_name,self.log_path) / 'ForwardError.jpg'
+        fig.savefig(filename)
+
         return
 
 

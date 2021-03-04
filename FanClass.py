@@ -1,7 +1,5 @@
 from Utils import  *
 from FanModel import FAN
-
-from FanModel import custom_weight_norm
 import torch.nn as nn
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
@@ -48,9 +46,15 @@ class FAN_Model():
         self.lr = lr
         self.lrstep=lrstep
         if(path_to_checkpoint is not None):
-            LogText(f"Fan Initiated from weights of : {path_to_checkpoint}",self.experiment_name,self.log_path)
-            checkpoint = torch.load(path_to_checkpoint, map_location='cpu')
-            self.model.load_state_dict(checkpoint['state_dict'])
+
+            try:
+                LogText(f"Fan Initiated from weights of : {path_to_checkpoint}",self.experiment_name,self.log_path)
+                checkpoint = torch.load(path_to_checkpoint, map_location='cpu')
+                self.model.load_state_dict(checkpoint['state_dict'])
+            
+            except:
+                raise Exception(f'Loading weights for FAN from {path_to_checkpoint} failed.')
+
         self.number_of_clusters=number_of_clusters
         self.clusteroverlap=clusteroverlap
         self.active_channels = np.arange(self.number_of_clusters)
@@ -63,7 +67,12 @@ class FAN_Model():
 
     def load_trained_secondstep_model(self,checkpoint_filename):
         LogText(f"Pretrained Second Step model loaded from  : {checkpoint_filename}", self.experiment_name,self.log_path)
-        checkpoint = torch.load(checkpoint_filename, map_location='cpu')
+
+        try:
+            checkpoint = torch.load(checkpoint_filename, map_location='cpu')
+        except:
+            raise Exception(f'Loading weights for FAN from {checkpoint_filename} failed.')
+
         self.iterations = checkpoint['iteration']
 
         self.active_channels = checkpoint['active_channels']
@@ -76,7 +85,12 @@ class FAN_Model():
 
     def load_trained_fiststep_model(self,checkpoint_filename):
         LogText(f"Pretrained First Step model loaded from  : {checkpoint_filename}", self.experiment_name,self.log_path)
-        checkpoint = torch.load(checkpoint_filename, map_location='cpu')
+
+        try:
+            checkpoint = torch.load(checkpoint_filename, map_location='cpu')
+        except:
+            raise Exception(f'Loading weights for FAN from {checkpoint_filename} failed.')
+
         self.iterations = checkpoint['iteration']
         self.centroid = checkpoint['centroid']
 
@@ -225,8 +239,8 @@ class FAN_Model():
 
         # arrays on which we save buffer content periodically. Corresponding files are temporal and
         # will be deleted after the completion of the process
-        CreateFileArray(self.log_path + 'CheckPoints/' + self.experiment_name + '/keypoints', 3)
-        CreateFileArray(self.log_path + 'CheckPoints/' + self.experiment_name + '/descriptors', numberoffeatures)
+        CreateFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'), 3)
+        CreateFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'), numberoffeatures)
 
         # intermediate variables
         first_index = 0
@@ -281,9 +295,9 @@ class FAN_Model():
             # periodically we store the buffer in file
             if buffer_last_index > int(buffersize * 0.8):
                 AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),
-                                self.log_path + 'CheckPoints/' + self.experiment_name + '/keypoints')
+                                sstr(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
                 AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]),
-                                self.log_path + 'CheckPoints/' + self.experiment_name + '/descriptors')
+                                str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
 
                 Keypoint_buffer = torch.zeros(buffersize, 3)
                 Descriptor__buffer = torch.zeros(buffersize, numberoffeatures)
@@ -291,12 +305,12 @@ class FAN_Model():
                 buffer_last_index = 0
 
         # store any keypoints left on the buffers
-        AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),self.log_path + 'CheckPoints/' + self.experiment_name + '/keypoints')
-        AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]),self.log_path + 'CheckPoints/' + self.experiment_name + '/descriptors')
+        AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+        AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]),str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
 
         # load handlers to the Keypoints and Descriptor files
-        Descriptors, fileHandler1 = OpenreadFileArray(self.log_path + 'CheckPoints/' + self.experiment_name + '/descriptors')
-        Keypoints, fileHandler2 = OpenreadFileArray(self.log_path + 'CheckPoints/' + self.experiment_name + '/keypoints')
+        Descriptors, fileHandler1 = OpenreadFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
+        Keypoints, fileHandler2 = OpenreadFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
         Keypoints = Keypoints[:, :]
         LogText(f"Keypoints Detected per image Only detector {pointsperimage / len(keypoint_indexes)}", self.experiment_name,self.log_path)
         LogText(f"Inference of keypoints and descriptors completed", self.experiment_name, self.log_path)
@@ -355,8 +369,8 @@ class FAN_Model():
         LogText(f"Keypoints Detected per image {averagepointsperimage/len(Image_Keypoints)}", self.experiment_name, self.log_path)
 
         self.save_keypoints(Image_Keypoints, f'UpdatedKeypoints{self.iterations}.pickle')
-        ClosereadFileArray(fileHandler1, self.log_path + 'CheckPoints/' + self.experiment_name + '/keypoints')
-        ClosereadFileArray(fileHandler2, self.log_path + 'CheckPoints/' + self.experiment_name + '/descriptors')
+        ClosereadFileArray(fileHandler1, str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+        ClosereadFileArray(fileHandler2, str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
         LogText(f"Clustering stage completed", self.experiment_name, self.log_path)
         return Image_Keypoints
 
@@ -551,8 +565,11 @@ class FAN_Model():
 
 
     def save_step1(self):
-        checkPointDirectory = self.log_path+ 'CheckPoints/' + self.experiment_name + '/'
-        checkPointFileName = checkPointDirectory + f'{self.experiment_name}FirstStepIteration{self.iterations}' + '.pth'
+
+        checkPointDirectory = GetCheckPointsPath(self.experiment_name,self.log_path)
+        checkPointFileName=f'{self.experiment_name}FirstStepIteration{self.iterations}' + '.pth'
+
+        checkPointFileName = checkPointDirectory / checkPointFileName
         save_parameters = {
         'state_dict': self.model.state_dict(),
         'optimizer':  self.optimizer.state_dict(),
@@ -563,8 +580,12 @@ class FAN_Model():
 
 
     def save_step2(self):
-        checkPointDirectory = self.log_path+ 'CheckPoints/' + self.experiment_name + '/'
-        checkPointFileName = checkPointDirectory + f'{self.experiment_name}SecondStepEpoch{self.epoch}' + '.pth'
+
+        checkPointDirectory = GetCheckPointsPath(self.experiment_name,self.log_path)
+        checkPointFileName=f'{self.experiment_name}SecondStepEpoch{self.epoch}' + '.pth'
+
+        checkPointFileName = checkPointDirectory / checkPointFileName
+
         save_parameters = {
         'state_dict': self.model.state_dict(),
         'optimizer':  self.optimizer.state_dict(),
@@ -577,9 +598,10 @@ class FAN_Model():
 
 
     def save_keypoints(self,Image_Keypoints,filename):
-        checkPointdir = self.log_path+ 'CheckPoints/' + self.experiment_name + '/'
-        checkPointFile=checkPointdir+filename
-        with open(checkPointFile, 'wb') as handle:
+        checkPointDirectory = GetCheckPointsPath(self.experiment_name,self.log_path)
+        checkPointFileName = checkPointDirectory / filename
+
+        with open(checkPointFileName, 'wb') as handle:
             pickle.dump(Image_Keypoints, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 

@@ -9,6 +9,7 @@ import random
 import yaml
 import torchfile
 import scipy.io
+from pathlib import Path
 
 class Database(Dataset):
     def __init__(self,dataset_name,number_of_channels,test=False,image_keypoints=None, function_for_dataloading=None,augmentations=None,use_box=False):
@@ -253,7 +254,7 @@ class Database(Dataset):
 
             def keypointsToFANResolution(self,imagefile,keypoints,W=None,H=None,is_test_sample=False):
                 
-                if(W is None or H is Nnone):
+                if(W is None or H is None):
                     W=self.W
                     H=self.H
                 minx,miny,maxx,maxy=self.getFANBox(self,imagefile,W,H,is_test_sample)
@@ -373,7 +374,18 @@ class Database(Dataset):
             #load CelebA paths
             with open('paths/main.yaml') as file:
                 paths = yaml.load(file, Loader=yaml.FullLoader)
+            
+
             self.datapath = paths['CelebA_datapath']
+
+            assert self.datapath!=None, "Path missing!! Update 'CelebA_datapath' on paths/main.yaml with path to CelebA images."
+            assert Path(self.datapath).exists(), f'Specified path to CelebA images does not exists {self.datapath}'
+
+
+            with open('data/CelebA/list_eval_partition.txt', 'r') as f:
+                CelebAImages = f.read().splitlines()
+            assert len(list(Path(self.datapath).glob('*.jpg')))==len(CelebAImages), f"There are missing CelebA images from {self.datapath}. Please specify a path that includes all CelebA images"
+            
             self.boxes=load_keypoints('data/CelebA/CelebABoundingBoxes.pickle')
             self.H=218
             self.W=178
@@ -403,20 +415,28 @@ class Database(Dataset):
                     self.files = CelebATrainImages
 
         if self.dataset_name == 'LS3D':
-        
+            
+
+            self.boxes=load_keypoints('data/LS3D/300W_LPBoundingBoxes.pickle')
+
             with open('paths/main.yaml') as file:
                 paths = yaml.load(file, Loader=yaml.FullLoader)
             self.datapath = paths['300WLP_datapath']
+
+            assert self.datapath!=None, "Path missing!! Update '300WLP_datapath' on paths/main.yaml with path to 300WLP images."
+
+
             self.path_to_LS3Dbalanced=paths['LS3Dbalanced_datapath']
 
-            self.boxes=load_keypoints('data/LS3D/300W_LPBoundingBoxes.pickle')
-            
             self.H=450
             self.W=450   
 
             def init(self):
                          
                 if (self.test):
+
+                    assert self.path_to_LS3Dbalanced!=None, "Path missing!! Update 'LS3Dbalanced_datapath' on paths/main.yaml with path to LS3Dbalanced images."
+
                     self.getbox=getbox_fromlandmarks_ls3d_eval
                     self.getGroundtruth=getGroundtruth_LS3D
                     testfiles = glob.glob(self.path_to_LS3Dbalanced + '/**/*.jpg', recursive=True)

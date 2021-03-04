@@ -10,7 +10,7 @@ from Databases import Database
 import Test
 import numpy as np
 import random
-from Utils import LogText
+from Utils import *
 
 def main():
     parser = argparse.ArgumentParser(description='Unsupervised Learning of Object Landmarks via Self-Training Correspondence (NeurIPS20)')
@@ -64,8 +64,11 @@ def ShowVisualRes(keypoints,log_path,experiment_name,number_of_clusters,dataset_
         colors = [Utils.colorlist[int(i)] for i in np.arange(len(pointstoshow))]
         ax.scatter(pointstoshow[:, 0], pointstoshow[:, 1], s=400, c=colors, marker='P',edgecolors='black', linewidths=0.3)
     fig.show()
-    fig.savefig(log_path+ 'Logs/' + experiment_name + f'/Step2.jpg')
-    LogText(f"Step2 results created in {log_path+ 'Logs/' + experiment_name + f'/Step2.jpg'}", experiment_name,log_path)
+
+    filename=GetLogsPath(experiment_name,log_path) / 'Step2.jpg'
+    fig.savefig(filename)
+
+    LogText(f"Step2 results created in {filename}", experiment_name,log_path)
 
 
 def ShowClusters(keypoints,log_path,experiment_name,number_of_clusters,dataset_name):
@@ -90,7 +93,8 @@ def ShowClusters(keypoints,log_path,experiment_name,number_of_clusters,dataset_n
 
             #for the case where cluster has less than 64 instances
             if(counter_datasetimages>len(keypoints)-1):
-                fig.savefig(log_path+ 'Logs/' + experiment_name + f'/Cluster{cluster_number}.jpg')
+                filename=GetLogsPath(experiment_name,log_path) / f'Cluster{cluster_number}.jpg'
+                fig.savefig(filename)
                 break
                 
             imagename=image_names[counter_datasetimages]
@@ -105,8 +109,10 @@ def ShowClusters(keypoints,log_path,experiment_name,number_of_clusters,dataset_n
                 counter_figureimages+=1
 
             counter_datasetimages+=1
-        fig.savefig(log_path+ 'Logs/' + experiment_name + f'/Cluster{cluster_number}.jpg')
-        LogText(f"Cluster images created in {log_path+ 'Logs/' + experiment_name + f'/Cluster{cluster_number}.jpg'}", experiment_name,log_path)
+
+        filename=GetLogsPath(experiment_name,log_path) / f'Cluster{cluster_number}.jpg'
+        fig.savefig(filename)
+        LogText(f"Cluster images created in {filename}", experiment_name,log_path)
 
 
 def ShowKeypoints(keypoints,log_path,experiment_name,number_of_clusters,dataset_name):
@@ -130,8 +136,9 @@ def ShowKeypoints(keypoints,log_path,experiment_name,number_of_clusters,dataset_
         ax.scatter(4*imagepoints[:,0], 4*imagepoints[:, 1])
         count+=1
     
-    fig.savefig(log_path+ 'Logs/' + experiment_name + f'/Keypoints.jpg')
-    LogText(f"Keypoint images created in {log_path+ 'Logs/' + experiment_name + f'/Keypoints.jpg'}", experiment_name,log_path)
+    filename=GetLogsPath(experiment_name,log_path) / 'Keypoints.jpg'
+    fig.savefig(filename)
+    LogText(f"Keypoint images created in {filename}", experiment_name,log_path)
 
 if __name__=="__main__":
     main()

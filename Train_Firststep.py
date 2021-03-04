@@ -5,7 +5,7 @@ from Train_options import Options
 from SuperPoint import SuperPoint
 from Databases import Database
 import Utils
-from Utils import LogText
+from Utils import LogText, CheckPaths
 from FanClass import FAN_Model
 import resource
 import imgaug.augmenters as iaa
@@ -45,9 +45,15 @@ def main():
     #load paths
     with open('paths/main.yaml') as file:
         paths = yaml.load(file, Loader=yaml.FullLoader)
+    
+    CheckPaths(paths,dataset_name)
+
     log_path=paths['log_path']
     path_to_superpoint_checkpoint=paths['path_to_superpoint_checkpoint']
-    
+
+    #This funcion will create the directories /Logs and a /CheckPoints at log_path
+    Utils.initialize_log_dirs(experiment_name,log_path)
+
     LogText(f"Experiment Name {experiment_name}\n"
             f"Database {dataset_name}\n"
             "Training Parameters: \n"
@@ -63,8 +69,7 @@ def main():
 
     LogText("Training of First step begins", experiment_name,log_path)
 
-    #This funcion will create the directories /Logs and a /CheckPoints at log_path
-    Utils.initialize_log_dirs(experiment_name,log_path)
+
 
     #augmentations for first step
     augmentations = iaa.Sequential([

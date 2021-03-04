@@ -30,10 +30,10 @@ class SuperPoint():
 
         try:
             checkpoint = torch.load(path_to_pretrained_superpoint, map_location='cpu')
-            self.model.load_state_dict(checkpoint['state_dict'])
+            self.model.load_state_dict(checkpoint)
             LogText(f"Superpoint Network from checkpoint {path_to_pretrained_superpoint}", self.experiment_name, self.log_path)
         except:
-            LogText(f"Superpoint network failed to load", self.experiment_name, self.log_path)
+            raise Exception(f"Superpoint weights from {path_to_pretrained_superpoint} failed to load.")
 
         self.softmax = torch.nn.Softmax(dim=1)
         self.pixelSuffle = torch.nn.PixelShuffle(8)
@@ -43,6 +43,7 @@ class SuperPoint():
     def CreateInitialPseudoGroundtruth(self, dataloader):
 
         LogText(f"Extraction of initial Superpoint pseudo groundtruth", self.experiment_name,self.log_path)
+        
 
         imagesize=256
         heatmapsize=64
@@ -55,8 +56,8 @@ class SuperPoint():
 
         #arrays on which we save buffer content periodically. Corresponding files are temporal and
         #will be deleted after the completion of the process
-        CreateFileArray(self.log_path+'CheckPoints/' +self.experiment_name + '/keypoints',3)
-        CreateFileArray(self.log_path+'CheckPoints/' +self.experiment_name + '/descriptors', numberoffeatures)
+        CreateFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'),3)
+        CreateFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'), numberoffeatures)
 
         #intermediate variables
         first_index = 0
@@ -131,8 +132,8 @@ class SuperPoint():
 
             #periodically we store the buffer in file
             if buffer_last_index>int(buffersize*0.8):
-                AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),self.log_path+'CheckPoints/' +self.experiment_name + '/keypoints')
-                AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]), self.log_path+'CheckPoints/' +self.experiment_name + '/descriptors')
+                AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+                AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]), str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
 
                 Keypoint_buffer = torch.zeros(buffersize, 3)
                 Descriptor__buffer = torch.zeros(buffersize, numberoffeatures)
@@ -141,12 +142,12 @@ class SuperPoint():
 
         LogText(f"Inference of Keypoints completed", self.experiment_name, self.log_path)
         #store any keypoints left on the buffers
-        AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]), self.log_path+'CheckPoints/' +self.experiment_name + '/keypoints')
-        AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]), self.log_path+'CheckPoints/' +self.experiment_name + '/descriptors')
+        AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]), str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+        AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]), str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
 
         #load handlers to the Keypoints and Descriptor files
-        Descriptors,fileHandler1=OpenreadFileArray(self.log_path+'CheckPoints/' +self.experiment_name + '/descriptors')
-        Keypoints, fileHandler2 = OpenreadFileArray( self.log_path+'CheckPoints/' +self.experiment_name + '/keypoints')
+        Descriptors,fileHandler1=OpenreadFileArray(str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
+        Keypoints, fileHandler2 = OpenreadFileArray( str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
         Keypoints = Keypoints[:, :]
         LogText(f"Keypoints Detected per image {len(Keypoints)/len(keypoint_indexes)}", self.experiment_name, self.log_path)
 
@@ -216,8 +217,8 @@ class SuperPoint():
             averagepointsperimage+=sum(clusterstokeep)
 
         LogText(f"Keypoints Detected per image(clusteringAssignment) {averagepointsperimage / len(Image_Keypoints)}",self.experiment_name, self.log_path)
-        ClosereadFileArray(fileHandler1,self.log_path+'CheckPoints/' +self.experiment_name + '/keypoints')
-        ClosereadFileArray(fileHandler2,self.log_path+'CheckPoints/' +self.experiment_name + '/descriptors')
+        ClosereadFileArray(fileHandler1,str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+        ClosereadFileArray(fileHandler2,str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
         self.save_keypoints(Image_Keypoints,"SuperPointKeypoints.pickle")
         LogText(f"Extraction of Initial pseudoGroundtruth completed", self.experiment_name, self.log_path)
         return Image_Keypoints
@@ -384,8 +385,8 @@ class SuperPoint():
 
 
     def save_keypoints(self,Image_Keypoints,filename):
-        checkPointdir = self.log_path+ 'CheckPoints/' + self.experiment_name + '/'
-        checkPointFile=checkPointdir+filename
+        checkPointdir = GetCheckPointsPath(self.experiment_name,self.log_path)
+        checkPointFile=checkPointdir /filename
         with open(checkPointFile, 'wb') as handle:
             pickle.dump(Image_Keypoints, handle, protocol=pickle.HIGHEST_PROTOCOL)
 

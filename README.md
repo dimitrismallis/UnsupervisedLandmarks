@@ -6,37 +6,16 @@ This repository contains the training and evaluation code for our NeurIPS 2020 p
 
 ![alt text](images/repo1.png "Method Description")
 
-## Requirments
-
-An overview or software requirments.
-
-- Pytorch 1.4 or newer with torchvision
-- [Faiss for GPU](https://github.com/facebookresearch/faiss) 
-- [imgaug 0.4.0](https://github.com/aleju/imgaug) 
-- [matrix_completion](https://pypi.org/project/matrix-completion/)
-- [tables](https://pypi.org/project/tables/)
-- [torchfile](https://pypi.org/project/torchfile/)
-- Opencv (cv2)
-- PyYAML
-- cdflib
-- h5py
-- Scipy
-- Sklearn
-- matplotlib
-- pandas
-- Numpy
-
-You will also require a reasonable CUDA capable GPU. This project was developed using Linux. 
 
 ## Data Preparation
 
 
 ### CelebA
 
-CelebA can be downloaded [here](http://www.robots.ox.ac.uk/~vgg/research/unsupervised_landmarks/resources/celeba.zip). Before running our method please update the path to CelebA images in `paths/main.yaml`. We provide precomputed bounding boxes and 68-point annotations (for evaluation only) inside the _data/CelebA_ directory.
+CelebA can be found [here](http://www.robots.ox.ac.uk/~vgg/research/unsupervised_landmarks/resources/celeba.zip). Download the .zip file inside an empty directory and unzip. We provide precomputed bounding boxes and 68-point annotations (for evaluation only) in _data/CelebA_.
 
 ### LS3D
-We use [300W-LP](https://drive.google.com/file/d/0B7OEHD3T4eCkVGs0TkhUWFN6N1k/view?usp=sharing) database for training and [LS3D-balanced](https://www.adrianbulat.com/face-alignment) for evaluation. Before running our method please update the corresponding paths to to 300W-LP and LS3D-balanced images in `paths/main.yaml` . We provide precomputed bounding boxes for 300W-LP inside the _data/LS3D_ directory.
+We use [300W-LP](https://drive.google.com/file/d/0B7OEHD3T4eCkVGs0TkhUWFN6N1k/view?usp=sharing) database for training and [LS3D-balanced](https://www.adrianbulat.com/downloads/FaceAlignment/LS3D-W-balanced-20-03-2017.zip) for evaluation. Download the files in 2 seperate empty directories and unzip. We provide precomputed bounding boxes for 300W-LP in _data/LS3D_.
 
 
 ### Human3.6
@@ -63,19 +42,54 @@ We provide a python script to preprocess the video data. Before executing the sc
 To create the database please run:
 
 ```
-python PrePreprocessHuman.py --path_to_extract_dataset <path_to_extract_dataset> --path_to_Human <path_to_Human>
+python PrePreprocessHuman.py --path_to_extract_dataset <pathToHuman3.6_database> --path_to_Human <path_to_Human>
 ```
 
-_\< path\_to\_Human \>_ is the directory where Human3.6 is downloaded. Frames, bounding boxes and 2D point annotations (for evaluation only) will be extracted in _\< path\_to\_extract\_dataset \>_. Please include _\< path\_to\_extract\_dataset \>_ to `paths/main.yaml`. 
+_\< path\_to\_Human \>_ is the directory where Human3.6 is downloaded. Frames, bounding boxes and 2D point annotations (for evaluation only) will be extracted in _\< pathToHuman3.6\_database \>_. 
+
+
+## Installation
+
+You require a reasonable CUDA capable GPU. This project was developed using Linux. 
+
+Create a new conda environment and activate it:
+
+```
+conda create -n UnsuperLandmEnv python=3.8
+conda activate UnsuperLandmEnv
+```
+
+Install [pythorch](https://pytorch.org/) and [faiss library]((https://github.com/facebookresearch/faiss) ):
+
+```
+conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+conda install -c pytorch faiss-gpu cudatoolkit=10.2
+```
+
+Install other external dependencies using pip.
+
+```
+pip install -r requirements.txt 
+```
+
+
+
+Our method is bootstraped by Superpoint. Download weights for a pretrained Superpoint model from [here](https://github.com/magicleap/SuperPointPretrainedNetwork/blob/master/superpoint_v1.pth).
+
+Before code execution you have to update `paths/main.yaml` so it includes all the required paths. Edit the following entries in `paths/main.yaml`.:
+
+```
+CelebA_datapath: <pathToCelebA_database>/celeb/Img/img_align_celeba_hq/
+300WLP_datapath: <pathTo300W_LP_database>/300W_LP/
+LS3Dbalanced_datapath: <pathToLS3D-balanced_database>/LS3D-balanced/
+Human_datapath: <pathToHuman3.6_database>/
+path_to_superpoint_checkpoint: <pathToSuperPointCheckPoint>/SuperPointCheckPoint.pth
+```
 
 
 
 
 ## Training
-Our method is bootstraped by Superpoint. Before executing the training code, download a [pretrained Superpoint model](https://github.com/magicleap/SuperPointPretrainedNetwork/blob/master/superpoint_v1.pth) and specify the following paths in `paths/main.yaml`.
-
-- `log_path`: Directoy to store log files and checkpoints.
-- `path_to_superpoint_checkpoint`: Path to Superpoint pretrained model.
 
 To execute the first step of our method please run:
 
@@ -89,7 +103,7 @@ Similarly, to execute the second step please run:
 python Train_Secondstep.py --dataset_name <dataset_name> --experiment_name <experiment_name>
 ```
 
-where _\< dataset\_name \>_ is in ``["CelebA","LS3D", "Human3.6"]`` and _\< experiment\_name \>_ is a custom name you choose for each experiment. Please use the same experiment name for both the first and second step. The software will automatically initiate the second step with the groundtruth descovered in step one.
+where _\< dataset\_name \>_ is in ``["CelebA","LS3D", "Human3.6"]`` and _\< experiment\_name \>_ is a custom name you choose for each experiment. Please use the **same experiment name for both the first and second step**. The software will automatically initiate the second step with the groundtruth descovered in step one.
 
 ## Testing
 To evaluate the trained model simply execute:
@@ -98,13 +112,13 @@ To evaluate the trained model simply execute:
 python Test.py --dataset_name <dataset_name> --experiment_name <experiment_name>
 ```
 
-The script will calculate cumulative forward and backward error curves. Will be stored in _log\_path/\<experiment\_name\>/Logs/_  .
+The script will calculate cumulative forward and backward error curves. Will be stored in _Logs/\<experiment\_name\>/Logs/_ .
 
 
 ## Visualisations
 We provide 3 different visualisations.
 
-### Keypoints:
+### Keypoints (Step 1):
 To inspect keypoint 2D locations learned from the detector head without without correspondance run:
 
 ```
@@ -113,7 +127,7 @@ python Visualise.py --visualisation Step1_Keypoints --dataset_name <dataset_name
 
 ![alt text](images/repo_keypoints.png "Example of detected keypoints.")
 
-### Clusters:
+### Clusters (Step 1):
 To inspect examples of keypoints assigned to the same cluster run:
 
 ```
@@ -124,7 +138,7 @@ python Visualise.py --visualisation Step1_Clusters --dataset_name <dataset_name>
 
 This will create a .jpg file per cluster.
 
-### Visual Results:
+### Visual Results (Step 2):
 For visual results run:
 
 ```
@@ -134,6 +148,8 @@ python Visualise.py --visualisation Step2 --dataset_name <dataset_name> --experi
 ![alt text](images/repo_results.png "Visual results.")
 
 The software will automatically load checkpoints and pseudogroundtruth files for the assosiated `<experiment_name> `.
+
+
 
 ## Pretrained Models
 
@@ -145,8 +161,9 @@ We provide also pretrained models. Can be used to execute the testing script and
 | **LS3D**      | _LS3D\_pretrained_ |   [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EcEzAHL5145DmioGpQp8P9sBtm-DOkE7BmL21qVg0k_2Og?e=s8IqpE) |
 | **Human3.6**   |  _Human\_pretrained_ | [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EcEzAHL5145DmioGpQp8P9sBtm-DOkE7BmL21qVg0k_2Og?e=s8IqpE) |
 
-Simply uncompress the .zip files inside `log_path/CheckPoints/`.
+Simply uncompress the .zip files inside `Logs/`.
 
+Pretrained weights can be used for calculating forward and backward error curves as well as running visualisation code for **visual results (step 2)**.
 
 ## Citation
 If you found this code useful please consider citing:

@@ -1,0 +1,15 @@
+cvxpy==1.1.10
+imgaug @ git+https://github.com/aleju/imgaug.git
+matplotlib==3.3.4
+matrix-completion==0.0.2
+numpy
+opencv-python==4.5.1.48
+pandas==1.2.3
+PyYAML==5.4.1
+scikit-image==0.18.1
+scikit-learn==0.24.1
+scipy==1.6.1
+sklearn==0.0
+tables==3.6.1
+torchfile==0.1.0
+
