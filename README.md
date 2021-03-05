@@ -59,7 +59,7 @@ conda create -n UnsuperLandmEnv python=3.8
 conda activate UnsuperLandmEnv
 ```
 
-Install [pythorch](https://pytorch.org/) and [faiss library]((https://github.com/facebookresearch/faiss) ):
+Install [pythorch](https://pytorch.org/) and the [faiss library]((https://github.com/facebookresearch/faiss) ):
 
 ```
 conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
@@ -83,7 +83,7 @@ CelebA_datapath: <pathToCelebA_database>/celeb/Img/img_align_celeba_hq/
 300WLP_datapath: <pathTo300W_LP_database>/300W_LP/
 LS3Dbalanced_datapath: <pathToLS3D-balanced_database>/LS3D-balanced/
 Human_datapath: <pathToHuman3.6_database>/
-path_to_superpoint_checkpoint: <pathToSuperPointCheckPoint>/SuperPointCheckPoint.pth
+path_to_superpoint_checkpoint: <pathToSuperPointCheckPoint>/superpoint_v1.pth
 ```
 
 
