@@ -295,7 +295,7 @@ class FAN_Model():
             # periodically we store the buffer in file
             if buffer_last_index > int(buffersize * 0.8):
                 AppendFileArray(np.array(Keypoint_buffer[:buffer_last_index]),
-                                sstr(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
+                                str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'keypoints'))
                 AppendFileArray(np.array(Descriptor__buffer[:buffer_last_index]),
                                 str(GetCheckPointsPath(self.experiment_name,self.log_path) / 'descriptors'))
 
