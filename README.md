@@ -157,9 +157,9 @@ We provide also pretrained models. Can be used to execute the testing script and
 
 | Dataset       |Experiment_name |Model        
 | ------------- |:----------| --------------- |
-| **CelebA**   | _CelebA\_pretrained_ |   [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EeHobD0yx4dNtrggKDrIU2IBP66jRxBj7QqCQRz0avP1aw?e=UxyvC8) |
-| **LS3D**      | _LS3D\_pretrained_ |   [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EcEzAHL5145DmioGpQp8P9sBtm-DOkE7BmL21qVg0k_2Og?e=s8IqpE) |
-| **Human3.6**   |  _Human\_pretrained_ | [link](https://uniofnottm-my.sharepoint.com/:u:/g/personal/dimitrios_mallis_nottingham_ac_uk/EcEzAHL5145DmioGpQp8P9sBtm-DOkE7BmL21qVg0k_2Og?e=s8IqpE) |
+| **CelebA**   | _CelebA\_pretrained_ |   [link](https://drive.google.com/file/d/1pPSUIhImP5G__9k9aGwZzbrwOhxKtyfF/view?usp=sharing) |
+| **LS3D**      | _LS3D\_pretrained_ |   [link](https://drive.google.com/file/d/14iF5ISS00Z47up7KFyW85R9_NjtcRInV/view?usp=sharing) |
+| **Human3.6**   |  _Human\_pretrained_ | [link](https://drive.google.com/file/d/1q5fEYNgg4O-Ka4sNL4PDm3IJ4czN69Tl/view?usp=sharing) |
 
 Simply uncompress the .zip files inside `Logs/`.
 
