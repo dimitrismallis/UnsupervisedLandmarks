@@ -12,7 +12,7 @@ This repository contains the training and evaluation code for our NeurIPS 2020 p
 
 ### CelebA
 
-CelebA can be found [here](http://www.robots.ox.ac.uk/~vgg/research/unsupervised_landmarks/resources/celeba.zip). Download the .zip file inside an empty directory and unzip. We provide precomputed bounding boxes and 68-point annotations (for evaluation only) in _data/CelebA_.
+CelebA can be found [here](https://www.robots.ox.ac.uk/~vgg/research/unsupervised_landmarks/resources/celeba.zip). Download the .zip file inside an empty directory and unzip. We provide precomputed bounding boxes and 68-point annotations (for evaluation only) in _data/CelebA_.
 
 ### LS3D
 We use [300W-LP](https://drive.google.com/file/d/0B7OEHD3T4eCkVGs0TkhUWFN6N1k/view?usp=sharing) database for training and [LS3D-balanced](https://www.adrianbulat.com/downloads/FaceAlignment/LS3D-W-balanced-20-03-2017.zip) for evaluation. Download the files in 2 seperate empty directories and unzip. We provide precomputed bounding boxes for 300W-LP in _data/LS3D_.
